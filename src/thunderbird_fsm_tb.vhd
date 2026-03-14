@@ -85,23 +85,85 @@ begin
 	-- PORT MAPS ----------------------------------------
 	-- Instantiate the Unit Under Test (UUT)
    uut: thunderbird_fsm port map (
-           => w_C,
+          i_left => w_L,
+          i_right => w_R,
           i_reset => w_reset,
           i_clk => w_clk,
-          o_R => w_stoplight(2),
-          o_Y => w_stoplight(1),
-          o_G => w_stoplight(0)
+          o_lights_L(0) => w_tailight_L(0),
+          o_lights_L(1) => w_tailight_L(1),
+          o_lights_L(2) => w_tailight_L(2),
+          o_lights_R(2) => w_tailight_R(2),
+          o_lights_R(1) => w_tailight_R(1),
+          o_lights_R(0) => w_tailight_R(0)
+          
         );
 	
 	-----------------------------------------------------
 	
 	-- PROCESSES ----------------------------------------	
     -- Clock process ------------------------------------
-    
-	-----------------------------------------------------
+	clk_proc : process
+	begin
+		w_clk <= '0';
+        wait for k_clk_period/2;
+		w_clk <= '1';
+		wait for k_clk_period/2;
+	end process;
 	
-	-- Test Plan Process --------------------------------
-	
-	-----------------------------------------------------	
-	
+	-- Simulation process
+	-- Use 220 ns for simulation
+	sim_proc: process
+	begin
+		-- sequential timing		
+		w_reset <= '1'; w_L <= '0'; w_R <= '0';
+		wait for k_clk_period;
+		assert (w_tailight_L = "000" and w_tailight_R = "000") report "bad reset" severity failure;
+		
+		w_reset <= '0';
+		--Left turn signal test
+		w_L <= '1'; w_R <= '0';
+		wait for k_clk_period;
+		assert (w_tailight_L = "001" and w_tailight_R = "000") report "left turn LA fail" severity failure;
+		
+
+		wait for k_clk_period;
+		assert (w_tailight_L = "011" and w_tailight_R = "000") report "left turn LB fail" severity failure;
+		
+		wait for k_clk_period;
+		assert (w_tailight_L = "111" and w_tailight_R = "000") report "left turn LC fail" severity failure;
+		
+		--Right turn signal test
+		w_L <= '0'; w_R <= '1';
+		wait for k_clk_period;
+		assert (w_tailight_R = "001" and w_tailight_L = "000") report "left turn RA fail" severity failure;
+		
+
+		wait for k_clk_period;
+		assert (w_tailight_R = "011" and w_tailight_L = "000") report "left turn RB fail" severity failure;
+		
+		wait for k_clk_period;
+		assert (w_tailight_R = "111" and w_tailight_L = "000") report "left turn RC fail" severity failure;
+		
+		--Hazard Light Test
+		
+		w_L <= '1'; w_R <= '1';
+		wait for k_clk_period;
+		assert (w_tailight_R = "111" and w_tailight_L = "111") report "Hazard Light Fail" severity failure;
+		
+		--Switching to Hazard during blinker test
+		
+		w_L <= '0'; w_R <= '1';
+		wait for k_clk_period;
+		
+		assert (w_tailight_R = "001" and w_tailight_L = "000") report "left turn RA fail" severity failure;
+		
+		w_L <= '1'; w_R <= '1';
+		wait for k_clk_period;
+		assert (w_tailight_R = "011" and w_tailight_L = "000") report "Blinker to Hazard RB fail " severity failure;
+		
+
+          
+          
+     wait;
+   end process;		
 end test_bench;
